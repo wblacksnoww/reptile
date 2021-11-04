@@ -2,6 +2,7 @@
 #include<string>
 #include<Windows.h>
 #include<queue>
+#include<regex>
 #pragma comment(lib,"ws2_32")
  
 using namespace std;
@@ -19,6 +20,8 @@ bool AnalyseUrl2(string url);
 bool Connect();
 //获取网页
 string GetHtml(string url);
+//下载图片
+bool Download(string url, string filename);
 
 int main() 
 {
@@ -75,8 +78,41 @@ bool StartCatch(string url)
 		if (false == Connect())
 			continue;
 		string html = GetHtml(currentURL);
-		cout << html << endl;
+		//cout << html << endl;
 
+		//匹配出所有的url
+		smatch mat;
+		string::const_iterator start = html.begin();
+		string::const_iterator end = html.end();
+		regex gex("http://[^\\s'\"<>()]+");
+		vector<string>vecUrl;
+		while (regex_search(start, end, mat, gex))
+		{
+
+			string newstr(mat[0].first, mat[0].second);
+
+			vecUrl.push_back(newstr);
+			
+			start = mat[0].second;
+
+		}
+		//遍历所有的url
+		for (int i = 0; i < vecUrl.size(); i++) 
+		{
+			string filename = "./resource/image/1.jpg";
+			//判断是否是图片
+			string imageUrl = vecUrl[i];
+			if (imageUrl.find(".jpg") != string::npos) 
+			{
+				//这是一张图片
+				Download(imageUrl, filename);
+			
+			
+			}
+		
+		
+		
+		}
 	}
 	
 
@@ -169,7 +205,7 @@ bool Connect()
 }
 
 //获取网页
-string GetHtml(string url) 
+string GetHtml(string url)
 {
 
 	//获取网页
@@ -185,14 +221,50 @@ string GetHtml(string url)
 	//接受数据
 	char ch = 0;
 	string html;
-	while (recv(g_socket, &ch,sizeof(char), 0)) 
+	while (recv(g_socket, &ch, sizeof(char), 0))
 	{
 		html += ch;
+
+		//cout << html;
+
+	}
+	//关闭套接字
+	closesocket(g_socket);
+	//释放网络
+	WSACleanup();
+	return html;
+}
+
+	//下载图片
+	bool Download(string url, string filename)
+	{
+		//获取网页
+		//http协议
+		string info;
+		info += "GET " + g_sObject + " HTTP/1.1\r\n";
+		info += "Host: " + g_sHost + "\r\n";
+		info += "Connectiong: Close\r\n\r\n";
+
+		if (SOCKET_ERROR == send(g_socket, info.c_str(), info.length(), 0))
+			return "1";
+
+		FILE* fp = fopen(filename.c_str(), "wb");
+		//接受数据
+		char buffer[20] = { 0 };
+		int nRecv;
+		while (nRecv = recv(g_socket, buffer, sizeof(buffer), 0))
+		{
+			fwrite(buffer, 1, nRecv, fp);
+
+			//cout << html;
+
+		}
+		//关闭套接字
+		closesocket(g_socket);
+		//释放网络
+		WSACleanup();
+		
 	
-		cout << html;
+	
 	
 	}
-
-	return html;
-
-}

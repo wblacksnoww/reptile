@@ -13,6 +13,8 @@ SOCKET g_socket;
 bool StartCatch(string url);
 //解析url
 bool AnalyseURL(string url);
+//解析URL\https
+bool AnalyseUrl2(string url);
 //联网
 bool Connect();
 //获取网页
@@ -52,19 +54,29 @@ bool StartCatch(string url)
 	q.push(url);
 
 
-
 	while (!q.empty()) 
 	{
 		string currentURL = q.front();
 		q.pop();
 		//解析url
 		if (false == AnalyseURL(currentURL))
-			continue;
+		{
+
+			//解析url2
+			if (false == AnalyseUrl2(currentURL))
+			{
+
+
+				cout << "解析失败" << endl;
+				return false;
+			}
+		}
 		//链接网络
 		if (false == Connect())
 			continue;
 		string html = GetHtml(currentURL);
 		cout << html << endl;
+
 	}
 	
 
@@ -100,6 +112,31 @@ bool AnalyseURL(string url)
 
 	return true;
 }
+
+//解析URL\https
+bool AnalyseUrl2(string url)
+{
+	if (string::npos == url.find("https://"))
+		return false;
+	if (url.length() <= 8)
+		return false;
+	int pos = url.find('/', 8);
+	if (pos == string::npos)
+	{
+		g_sHost = url.substr(8);
+		g_sObject = '/';
+	}
+	else
+	{
+		g_sHost = url.substr(8, pos - 8);
+		g_sObject = url.substr(pos);
+	}
+	if (g_sHost.empty())
+		return false;
+	cout << "域名：" << g_sHost << " " << "资源：" << g_sObject << endl;
+	return true;
+}
+
 
 //联网
 bool Connect() 
@@ -143,18 +180,19 @@ string GetHtml(string url)
 	info += "Connectiong: Close\r\n\r\n";
 
 	if (SOCKET_ERROR == send(g_socket, info.c_str(), info.length(), 0))
-		return "0";
+		return "1";
 
 	//接受数据
 	char ch = 0;
 	string html;
-	while (recv(g_socket, &ch, sizeof(char), 0)) 
+	while (recv(g_socket, &ch,sizeof(char), 0)) 
 	{
 		html += ch;
 	
-	
+		cout << html;
 	
 	}
+
 	return html;
 
 }
